@@ -247,6 +247,68 @@
       line-height: 1.5;
     }
 
+    .overtime-panel {
+      background: #f8fbff;
+      border: 1px solid #c9ddf7;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(220px, .8fr);
+      gap: 16px;
+      align-items: end;
+    }
+
+    .overtime-panel h2 {
+      margin: 0 0 8px;
+      color: #1f3b5c;
+    }
+
+    .overtime-panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .overtime-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .overtime-result {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-width: 0;
+    }
+
+    .overtime-result span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .overtime-result strong {
+      display: block;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1;
+      overflow-wrap: anywhere;
+    }
+
+    .overtime-result small {
+      display: block;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -326,7 +388,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 780px;
+      min-width: 980px;
       font-size: 13px;
     }
 
@@ -440,6 +502,10 @@
         grid-template-columns: 1fr;
       }
 
+      .overtime-panel {
+        grid-template-columns: 1fr;
+      }
+
       .metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -453,6 +519,7 @@
 
       .grid,
       .metrics,
+      .overtime-fields,
       .child-row {
         grid-template-columns: 1fr;
       }
@@ -650,14 +717,6 @@
               <input id="spousalSupport" name="spousalSupport" type="number" min="0" step="10" value="0">
             </div>
             <div class="field">
-              <label for="extraEarnings">Extra earnings per month</label>
-              <input id="extraEarnings" name="extraEarnings" type="number" min="0" step="25" value="0">
-            </div>
-            <div class="field">
-              <label for="extraEarningsRate">Support on extra earnings</label>
-              <input id="extraEarningsRate" name="extraEarningsRate" type="number" min="0" max="100" step=".1" value="0">
-            </div>
-            <div class="field">
               <label for="semimonthlyDays">Semimonthly days</label>
               <input id="semimonthlyDays" name="semimonthlyDays" value="1,15">
             </div>
@@ -717,6 +776,28 @@
           </button>
         </div>
       </div>
+
+      <section class="overtime-panel" aria-live="polite">
+        <div>
+          <h2>Overtime Support</h2>
+          <p>Enter overtime, bonus, or other extra earnings for the month. The amount below is the additional support to set aside using the order percentage.</p>
+          <div class="overtime-fields">
+            <div class="field">
+              <label for="extraEarnings">Overtime or bonus amount</label>
+              <input id="extraEarnings" name="extraEarnings" form="plannerForm" type="number" min="0" step="25" value="0">
+            </div>
+            <div class="field">
+              <label for="extraEarningsRate">Support percent on overtime</label>
+              <input id="extraEarningsRate" name="extraEarningsRate" form="plannerForm" type="number" min="0" max="100" step=".1" value="0">
+            </div>
+          </div>
+        </div>
+        <div class="overtime-result">
+          <span>Additional Support</span>
+          <strong id="overtimeSupportDue">$0</strong>
+          <small id="overtimeSupportMeta">Enter the percentage from the court order.</small>
+        </div>
+      </section>
 
       <div class="metrics" aria-live="polite">
         <div class="metric">
@@ -1174,6 +1255,16 @@
       document.getElementById("rowCount").textContent = `${rows.length} rows`;
     }
 
+    function renderOvertimeSupport(state) {
+      const overtime = Math.max(0, num(state.extraEarnings));
+      const rate = clamp(num(state.extraEarningsRate), 0, 100);
+      const due = overtime * pct(rate);
+      document.getElementById("overtimeSupportDue").textContent = money.format(due);
+      document.getElementById("overtimeSupportMeta").textContent = rate > 0
+        ? `${rate}% of ${money.format(overtime)} in overtime or bonus pay`
+        : "Enter the percentage from the court order.";
+    }
+
     function renderTable(rows) {
       const visibleRows = rows.slice(0, 240);
       scheduleBody.innerHTML = visibleRows.map(row => `
@@ -1313,6 +1404,7 @@
       const state = readState();
       const rows = calculateSchedule(state);
       const payRows = calculatePaySchedule(state, rows);
+      renderOvertimeSupport(state);
       renderMetrics(rows);
       renderTable(rows);
       renderPayTable(state, payRows);
@@ -1393,6 +1485,11 @@
 
     form.addEventListener("change", event => {
       if (event.target.id !== "childrenCount") run();
+    });
+
+    document.querySelectorAll('[form="plannerForm"]').forEach(input => {
+      input.addEventListener("input", run);
+      input.addEventListener("change", run);
     });
 
     childrenList.addEventListener("click", event => {
