@@ -630,6 +630,48 @@
         </div>
 
         <div class="section">
+          <h2>Court Order Pay Schedule</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="payFrequency">Pay frequency</label>
+              <select id="payFrequency" name="payFrequency">
+                <option value="biweekly">Biweekly</option>
+                <option value="weekly">Weekly</option>
+                <option value="semimonthly">Semimonthly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="firstPayDate">First pay date</label>
+              <input id="firstPayDate" name="firstPayDate" type="date" value="2026-08-07">
+            </div>
+            <div class="field">
+              <label for="spousalSupport">Spousal support order</label>
+              <input id="spousalSupport" name="spousalSupport" type="number" min="0" step="10" value="0">
+            </div>
+            <div class="field">
+              <label for="extraEarnings">Extra earnings per month</label>
+              <input id="extraEarnings" name="extraEarnings" type="number" min="0" step="25" value="0">
+            </div>
+            <div class="field">
+              <label for="extraEarningsRate">Support on extra earnings</label>
+              <input id="extraEarningsRate" name="extraEarningsRate" type="number" min="0" max="100" step=".1" value="0">
+            </div>
+            <div class="field">
+              <label for="semimonthlyDays">Semimonthly days</label>
+              <input id="semimonthlyDays" name="semimonthlyDays" value="1,15">
+            </div>
+            <div class="field full">
+              <label class="toggle" for="includePaySchedule">
+                <span>Show paycheck withholding schedule</span>
+                <input id="includePaySchedule" name="includePaySchedule" type="checkbox" checked>
+              </label>
+            </div>
+          </div>
+          <div class="method-note">Use this for court orders or scanned PDF schedules that state a monthly child support amount, spousal support amount, pay frequency, or extra earnings percentage. Enter the terms manually; do not upload private court documents.</div>
+        </div>
+
+        <div class="section">
           <h2>Child End Dates</h2>
           <div id="childrenList"></div>
         </div>
@@ -729,12 +771,38 @@
                 <th>Base</th>
                 <th>Add-ons</th>
                 <th>Credits</th>
+                <th>Child Due</th>
+                <th>Spousal</th>
+                <th>Extra Earnings</th>
                 <th>Total Due</th>
                 <th>Extra Arrears</th>
                 <th>Arrears Balance</th>
               </tr>
             </thead>
             <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="table-wrap" id="payScheduleSection">
+        <div class="table-head">
+          <h2>Paycheck Schedule</h2>
+          <div class="subtle" id="payRowCount"></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Pay Date</th>
+                <th>Order Month</th>
+                <th>Frequency</th>
+                <th>Child Support</th>
+                <th>Spousal</th>
+                <th>Extra Earnings</th>
+                <th>Total Withholding</th>
+              </tr>
+            </thead>
+            <tbody id="payScheduleBody"></tbody>
           </table>
         </div>
       </section>
@@ -746,10 +814,12 @@
     const form = document.getElementById("plannerForm");
     const childrenList = document.getElementById("childrenList");
     const scheduleBody = document.getElementById("scheduleBody");
+    const payScheduleBody = document.getElementById("payScheduleBody");
     const chart = document.getElementById("supportChart");
     const ctx = chart.getContext("2d");
     const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
     const monthFmt = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+    const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
     const methodNotes = {
       flat: "Use this when there is already a monthly order or negotiated amount. The planner applies the order adjustment and optional child age-out scaling.",
       percent: "Uses an editable percentage of the paying parent's net monthly income. State percentages differ, so treat the default as a placeholder.",
@@ -778,6 +848,13 @@
       otherRaise: "2",
       orderCola: "0",
       expenseInflation: "3",
+      payFrequency: "biweekly",
+      firstPayDate: "2026-08-07",
+      spousalSupport: "0",
+      extraEarnings: "0",
+      extraEarningsRate: "0",
+      semimonthlyDays: "1,15",
+      includePaySchedule: true,
       scaleWithChildren: true,
       arrearsStart: "0",
       arrearsInterest: "0",
@@ -795,6 +872,7 @@
         state[key] = value;
       }
       state.scaleWithChildren = document.getElementById("scaleWithChildren").checked;
+      state.includePaySchedule = document.getElementById("includePaySchedule").checked;
       state.method = document.getElementById("method").value;
       return state;
     }
@@ -877,8 +955,22 @@
       return new Date(Date.UTC(year, month - 1, 1));
     }
 
+    function parseDate(value, fallbackMonth) {
+      const [year, month, day] = String(value || "").split("-").map(Number);
+      if (!year || !month || !day) return new Date(Date.UTC(fallbackMonth.getUTCFullYear(), fallbackMonth.getUTCMonth(), 1));
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+
     function addMonths(date, months) {
       return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+    }
+
+    function addDays(date, days) {
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
+    }
+
+    function lastDayOfMonth(year, monthIndex) {
+      return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
     }
 
     function monthKey(date) {
@@ -954,7 +1046,11 @@
         }
 
         base = childrenNow > 0 ? Math.max(0, base) : 0;
-        const due = Math.max(0, base + addOns - credits);
+        const childDue = Math.max(0, base + addOns - credits);
+        const spousal = num(state.spousalSupport) * Math.pow(1 + pct(state.orderCola), yearsElapsed);
+        const extraEarnings = num(state.extraEarnings) * Math.pow(1 + pct(state.payerRaise), yearsElapsed);
+        const extraSupport = extraEarnings * pct(state.extraEarningsRate);
+        const due = childDue + spousal + extraSupport;
         const extra = Math.min(Math.max(0, num(state.extraArrearsPayment)), Math.max(0, arrears));
         arrears = Math.max(0, arrears * (1 + pct(state.arrearsInterest) / 12) - extra);
 
@@ -966,12 +1062,99 @@
           base,
           addOns,
           credits,
+          childDue,
+          spousal,
+          extraSupport,
           due,
           extra,
           arrears
         });
       }
       return rows;
+    }
+
+    function payFrequencyLabel(value) {
+      return {
+        weekly: "Weekly",
+        biweekly: "Biweekly",
+        semimonthly: "Semimonthly",
+        monthly: "Monthly"
+      }[value] || "Biweekly";
+    }
+
+    function parseSemimonthlyDays(value) {
+      const days = String(value || "")
+        .split(",")
+        .map(part => clamp(Math.round(num(part.trim(), 1)), 1, 31))
+        .filter(Boolean);
+      return [...new Set(days.length ? days : [1, 15])].slice(0, 2).sort((a, b) => a - b);
+    }
+
+    function buildPayDates(state, monthlyRows) {
+      if (!monthlyRows.length) return [];
+      const startMonth = parseMonth(state.startMonth);
+      const firstPayDate = parseDate(state.firstPayDate, startMonth);
+      const endExclusive = addMonths(startMonth, monthlyRows.length);
+      const dates = [];
+      const frequency = state.payFrequency || "biweekly";
+
+      if (frequency === "weekly" || frequency === "biweekly") {
+        const step = frequency === "weekly" ? 7 : 14;
+        for (let date = firstPayDate; date < endExclusive; date = addDays(date, step)) {
+          if (date >= startMonth) dates.push(date);
+        }
+        return dates;
+      }
+
+      if (frequency === "monthly") {
+        const day = firstPayDate.getUTCDate();
+        for (let i = 0; i < monthlyRows.length; i++) {
+          const month = addMonths(startMonth, i);
+          const safeDay = Math.min(day, lastDayOfMonth(month.getUTCFullYear(), month.getUTCMonth()));
+          dates.push(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), safeDay)));
+        }
+        return dates;
+      }
+
+      const semimonthlyDays = parseSemimonthlyDays(state.semimonthlyDays);
+      for (let i = 0; i < monthlyRows.length; i++) {
+        const month = addMonths(startMonth, i);
+        const lastDay = lastDayOfMonth(month.getUTCFullYear(), month.getUTCMonth());
+        semimonthlyDays.forEach(day => {
+          dates.push(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), Math.min(day, lastDay))));
+        });
+      }
+      return dates.filter(date => date >= startMonth && date < endExclusive).sort((a, b) => a - b);
+    }
+
+    function calculatePaySchedule(state, monthlyRows) {
+      if (!state.includePaySchedule) return [];
+      const byMonth = new Map(monthlyRows.map(row => [monthKey(row.date), row]));
+      const dates = buildPayDates(state, monthlyRows);
+      const countByMonth = dates.reduce((map, date) => {
+        const key = monthKey(date);
+        map.set(key, (map.get(key) || 0) + 1);
+        return map;
+      }, new Map());
+
+      return dates.map(date => {
+        const key = monthKey(date);
+        const row = byMonth.get(key);
+        const divisor = Math.max(1, countByMonth.get(key) || 1);
+        const childSupport = (row?.childDue || 0) / divisor;
+        const spousal = (row?.spousal || 0) / divisor;
+        const extraSupport = (row?.extraSupport || 0) / divisor;
+        return {
+          date,
+          payDate: dateFmt.format(date),
+          month: row?.month || monthFmt.format(date),
+          frequency: payFrequencyLabel(state.payFrequency),
+          childSupport,
+          spousal,
+          extraSupport,
+          total: childSupport + spousal + extraSupport
+        };
+      });
     }
 
     function renderMetrics(rows) {
@@ -984,7 +1167,7 @@
       document.getElementById("totalSupport").textContent = money.format(total);
       document.getElementById("avgMonthly").textContent = money.format(avg);
       document.getElementById("endingArrears").textContent = money.format(ending);
-      document.getElementById("totalMeta").textContent = `${rows.length} monthly estimates`;
+      document.getElementById("totalMeta").textContent = "Support, add-ons, and order extras";
       document.getElementById("avgMeta").textContent = `${rows[0]?.month || ""} to ${rows[rows.length - 1]?.month || ""}`;
       document.getElementById("arrearsMeta").textContent = `${money.format(rows.reduce((sum, row) => sum + row.extra, 0))} extra paid`;
       document.getElementById("chartRange").textContent = `${rows[0]?.month || ""} to ${rows[rows.length - 1]?.month || ""}`;
@@ -1001,9 +1184,29 @@
           <td>${money.format(row.base)}</td>
           <td>${money.format(row.addOns)}</td>
           <td>${money.format(row.credits)}</td>
+          <td>${money.format(row.childDue)}</td>
+          <td>${money.format(row.spousal)}</td>
+          <td>${money.format(row.extraSupport)}</td>
           <td><strong>${money.format(row.due)}</strong></td>
           <td>${money.format(row.extra)}</td>
           <td>${money.format(row.arrears)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderPayTable(state, payRows) {
+      document.getElementById("payScheduleSection").classList.toggle("hidden", !state.includePaySchedule);
+      document.getElementById("payRowCount").textContent = `${payRows.length} pay dates`;
+      const visibleRows = payRows.slice(0, 520);
+      payScheduleBody.innerHTML = visibleRows.map(row => `
+        <tr>
+          <td>${row.payDate}</td>
+          <td>${row.month}</td>
+          <td>${row.frequency}</td>
+          <td>${money.format(row.childSupport)}</td>
+          <td>${money.format(row.spousal)}</td>
+          <td>${money.format(row.extraSupport)}</td>
+          <td><strong>${money.format(row.total)}</strong></td>
         </tr>
       `).join("");
     }
@@ -1014,6 +1217,7 @@
       document.getElementById("reviewNotes").innerHTML = `
         <div><strong>Use official numbers before filing.</strong> This planner does not replace a court-certified calculator, court order, attorney, mediator, or local child support agency.</div>
         <div>The current projection uses <strong>${methodLabel(state.method)}</strong>${stateText}, ${rows[0]?.children || 0} active children at the start, and ${lastChildMonth ? `child support end dates through <strong>${escapeHtml(lastChildMonth)}</strong>` : "no entered child end date"}.</div>
+        <div>For scanned PDFs or handwritten court schedules, enter the order terms manually in the court order pay schedule fields. The app does not upload, read, store, or publish private PDF contents.</div>
         <div>Official starting points: <a href="https://www.usa.gov/child-support" target="_blank" rel="noreferrer">USA.gov child support help</a>, <a href="https://childsupport.ca.gov/guideline-calculator/" target="_blank" rel="noreferrer">California Guideline Calculator</a>, and <a href="https://www.ncsl.org/human-services/child-support-guideline-models" target="_blank" rel="noreferrer">state guideline model overview</a>.</div>
       `;
     }
@@ -1108,19 +1312,25 @@
     function run() {
       const state = readState();
       const rows = calculateSchedule(state);
+      const payRows = calculatePaySchedule(state, rows);
       renderMetrics(rows);
       renderTable(rows);
+      renderPayTable(state, payRows);
       renderChart(rows);
       renderNotes(state, rows);
       saveState();
       window.currentRows = rows;
+      window.currentPayRows = payRows;
     }
 
     function exportCsv() {
       const rows = window.currentRows || [];
-      const headers = ["Month", "Method", "Active Children", "Base", "Add-ons", "Credits", "Total Due", "Extra Arrears Payment", "Arrears Balance"];
+      const payRows = window.currentPayRows || [];
+      const monthlyHeaders = ["Month", "Method", "Active Children", "Base", "Add-ons", "Credits", "Child Due", "Spousal", "Extra Earnings Support", "Total Due", "Extra Arrears Payment", "Arrears Balance"];
+      const payHeaders = ["Pay Date", "Order Month", "Frequency", "Child Support", "Spousal", "Extra Earnings Support", "Total Withholding"];
       const csv = [
-        headers.join(","),
+        "Monthly schedule",
+        monthlyHeaders.join(","),
         ...rows.map(row => [
           row.month,
           row.method,
@@ -1128,10 +1338,25 @@
           row.base.toFixed(2),
           row.addOns.toFixed(2),
           row.credits.toFixed(2),
+          row.childDue.toFixed(2),
+          row.spousal.toFixed(2),
+          row.extraSupport.toFixed(2),
           row.due.toFixed(2),
           row.extra.toFixed(2),
           row.arrears.toFixed(2)
-        ].map(value => `"${String(value).replace(/"/g, "\"\"")}"`).join(","))
+        ].map(csvCell).join(",")),
+        "",
+        "Paycheck schedule",
+        payHeaders.join(","),
+        ...payRows.map(row => [
+          row.payDate,
+          row.month,
+          row.frequency,
+          row.childSupport.toFixed(2),
+          row.spousal.toFixed(2),
+          row.extraSupport.toFixed(2),
+          row.total.toFixed(2)
+        ].map(csvCell).join(","))
       ].join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -1142,6 +1367,10 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+    }
+
+    function csvCell(value) {
+      return `"${String(value).replace(/"/g, "\"\"")}"`;
     }
 
     document.querySelectorAll("[data-method]").forEach(button => {
@@ -1160,6 +1389,10 @@
         }
       }
       run();
+    });
+
+    form.addEventListener("change", event => {
+      if (event.target.id !== "childrenCount") run();
     });
 
     childrenList.addEventListener("click", event => {

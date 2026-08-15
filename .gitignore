@@ -1,0 +1,5 @@
+*.pdf
+*.PDF
+private-schedules/
+private-documents/
+tmp/

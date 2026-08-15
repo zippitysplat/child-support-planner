@@ -15,5 +15,9 @@ Features:
 - Flat monthly order, percentage-of-income, and configurable income-shares estimate modes
 - Monthly projection with income changes, support adjustment, expenses, and child age-out dates
 - Add-on expenses, credits, arrears balance, interest, and extra arrears payments
+- Court-order pay schedule fields for weekly, biweekly, semimonthly, or monthly withholding
+- Optional spousal support and extra earnings support percentage inputs
 - Chart, monthly table, CSV export, print or save as PDF
 - Local browser autosave
+
+Privacy note: do not commit private court PDFs, scanned schedules, pay stubs, or case documents. This repo is public and the app is designed as a blank template.
