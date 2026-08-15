@@ -252,17 +252,15 @@
       border: 1px solid #c9ddf7;
       border-radius: 8px;
       box-shadow: var(--shadow);
-      padding: 16px;
+      padding: 18px;
       margin-bottom: 18px;
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(220px, .8fr);
-      gap: 16px;
-      align-items: end;
     }
 
     .overtime-panel h2 {
       margin: 0 0 8px;
       color: #1f3b5c;
+      font-size: 18px;
+      text-transform: none;
     }
 
     .overtime-panel p {
@@ -272,41 +270,62 @@
       line-height: 1.45;
     }
 
-    .overtime-fields {
+    .step-list {
       display: grid;
-      grid-template-columns: repeat(2, minmax(120px, 1fr));
-      gap: 10px;
-      margin-top: 12px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
+      margin-top: 16px;
+      border: 1px solid #c9ddf7;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
     }
 
-    .overtime-result {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 8px;
+    .step {
       padding: 14px;
+      border-right: 1px solid #c9ddf7;
       min-width: 0;
     }
 
-    .overtime-result span {
+    .step:last-child {
+      border-right: 0;
+    }
+
+    .step-number {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .step-title {
+      display: block;
+      color: var(--ink);
+      font-weight: 800;
+      margin-bottom: 8px;
+      line-height: 1.25;
+    }
+
+    .step-help {
       display: block;
       color: var(--muted);
       font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 8px;
+      line-height: 1.35;
+      margin-top: 7px;
     }
 
-    .overtime-result strong {
+    .overtime-output {
       display: block;
       font-size: clamp(28px, 4vw, 44px);
       line-height: 1;
       overflow-wrap: anywhere;
-    }
-
-    .overtime-result small {
-      display: block;
-      color: var(--muted);
-      margin-top: 8px;
-      line-height: 1.35;
+      margin-top: 7px;
     }
 
     .metrics {
@@ -502,10 +521,6 @@
         grid-template-columns: 1fr;
       }
 
-      .overtime-panel {
-        grid-template-columns: 1fr;
-      }
-
       .metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -519,9 +534,18 @@
 
       .grid,
       .metrics,
-      .overtime-fields,
+      .step-list,
       .child-row {
         grid-template-columns: 1fr;
+      }
+
+      .step {
+        border-right: 0;
+        border-bottom: 1px solid #c9ddf7;
+      }
+
+      .step:last-child {
+        border-bottom: 0;
       }
 
       .child-row button {
@@ -778,24 +802,27 @@
       </div>
 
       <section class="overtime-panel" aria-live="polite">
-        <div>
-          <h2>Overtime Calculator</h2>
-          <p>Enter overtime, bonus, or other extra earnings for the month. The amount below is the additional support to set aside using the order percentage.</p>
-          <div class="overtime-fields">
-            <div class="field">
-              <label for="extraEarnings">Overtime or bonus amount</label>
-              <input id="extraEarnings" name="extraEarnings" form="plannerForm" type="number" min="0" step="25" value="0">
-            </div>
-            <div class="field">
-              <label for="extraEarningsRate">Support percent on overtime</label>
-              <input id="extraEarningsRate" name="extraEarningsRate" form="plannerForm" type="number" min="0" max="100" step=".1" value="0">
-            </div>
+        <h2>Overtime Calculator</h2>
+        <p>Use this first. It answers: if I made extra money, how much extra child support should I set aside?</p>
+        <div class="step-list">
+          <div class="step">
+            <span class="step-number">1</span>
+            <label class="step-title" for="extraEarnings">Type the overtime money</label>
+            <input id="extraEarnings" name="extraEarnings" form="plannerForm" type="number" min="0" step="25" value="0" inputmode="decimal">
+            <span class="step-help">Use the extra gross amount from overtime, bonus, or other extra pay.</span>
           </div>
-        </div>
-        <div class="overtime-result">
-          <span>Overtime Child Support</span>
-          <strong id="overtimeSupportDue">$0</strong>
-          <small id="overtimeSupportMeta">Enter the percentage from the court order.</small>
+          <div class="step">
+            <span class="step-number">2</span>
+            <label class="step-title" for="extraEarningsRate">Type the percent from the order</label>
+            <input id="extraEarningsRate" name="extraEarningsRate" form="plannerForm" type="number" min="0" max="100" step=".1" value="0" inputmode="decimal">
+            <span class="step-help">If the order says 14%, type 14.</span>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <span class="step-title">Set aside this much</span>
+            <strong class="overtime-output" id="overtimeSupportDue">$0</strong>
+            <span class="step-help" id="overtimeSupportMeta">Enter the percentage from the court order.</span>
+          </div>
         </div>
       </section>
 
@@ -1261,7 +1288,7 @@
       const due = overtime * pct(rate);
       document.getElementById("overtimeSupportDue").textContent = money.format(due);
       document.getElementById("overtimeSupportMeta").textContent = rate > 0
-        ? `${rate}% of ${money.format(overtime)} in overtime or bonus pay`
+        ? `This is ${rate}% of ${money.format(overtime)}.`
         : "Enter the percentage from the court order.";
     }
 
