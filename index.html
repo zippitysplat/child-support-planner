@@ -46,21 +46,25 @@
     .shell {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
     }
 
     aside {
       background: var(--panel);
-      border-right: 1px solid var(--line);
+      border-top: 1px solid var(--line);
       padding: 22px;
       overflow: auto;
-      max-height: 100vh;
+      max-height: none;
+      order: 2;
     }
 
     main {
       overflow: auto;
-      max-height: 100vh;
+      max-height: none;
       padding: 22px;
+      order: 1;
+      width: min(980px, 100%);
+      margin: 0 auto;
     }
 
     .topbar {
@@ -110,6 +114,57 @@
     .section:first-of-type {
       border-top: 0;
       padding-top: 0;
+    }
+
+    .advanced-drawer,
+    .full-projection {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    .advanced-drawer {
+      max-width: 980px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .advanced-drawer summary,
+    .full-projection summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 16px;
+      font-weight: 800;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .advanced-drawer summary::-webkit-details-marker,
+    .full-projection summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .advanced-drawer summary::after,
+    .full-projection summary::after {
+      content: "+";
+      float: right;
+      color: var(--blue);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .advanced-drawer[open] summary::after,
+    .full-projection[open] summary::after {
+      content: "-";
+    }
+
+    .advanced-body,
+    .projection-body {
+      padding: 16px;
+      border-top: 1px solid var(--line);
     }
 
     .grid {
@@ -180,7 +235,7 @@
     }
 
     .actions {
-      display: flex;
+      display: none;
       gap: 8px;
       flex-wrap: wrap;
     }
@@ -598,192 +653,126 @@
 <body>
   <div class="shell">
     <aside>
-      <div class="topbar">
-        <div>
-          <h2>Inputs</h2>
-          <div class="subtle">Saved in this browser only.</div>
-        </div>
-        <button class="icon-button" id="resetBtn" type="button" title="Reset inputs" aria-label="Reset inputs">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
-        </button>
-      </div>
-
-      <div class="notice">
-        Planning estimate only. Courts and agencies use jurisdiction-specific rules, verified incomes, credits, custody schedules, and add-on expenses.
-      </div>
-
-      <form id="plannerForm">
-        <div class="section">
-          <h2>Case Basics</h2>
-          <div class="grid">
-            <div class="field">
-              <label for="jurisdiction">State or county</label>
-              <input id="jurisdiction" name="jurisdiction" value="California" autocomplete="address-level1">
+      <details class="advanced-drawer">
+        <summary>Advanced settings</summary>
+        <div class="advanced-body">
+          <div class="topbar">
+            <div>
+              <h2>Inputs</h2>
+              <div class="subtle">These are optional. The overtime calculator works without opening this.</div>
             </div>
-            <div class="field">
-              <label for="childrenCount">Children</label>
-              <input id="childrenCount" name="childrenCount" type="number" min="1" max="8" step="1" value="2">
-            </div>
-            <div class="field">
-              <label for="startMonth">Start month</label>
-              <input id="startMonth" name="startMonth" type="month" value="2026-08">
-            </div>
-            <div class="field">
-              <label for="years">Projection years</label>
-              <input id="years" name="years" type="number" min="1" max="25" step="1" value="10">
-            </div>
+            <button class="icon-button" id="resetBtn" type="button" title="Reset inputs" aria-label="Reset inputs">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+            </button>
           </div>
-        </div>
 
-        <div class="section">
-          <h2>Method</h2>
-          <div class="segmented" role="tablist" aria-label="Calculation method">
-            <button type="button" data-method="flat" class="active">Flat Order</button>
-            <button type="button" data-method="percent">Percent</button>
-            <button type="button" data-method="shares">Income Shares</button>
+          <div class="notice">
+            Planning estimate only. Use the court order or official calculator for legal numbers.
           </div>
-          <input type="hidden" id="method" name="method" value="flat">
-          <div class="method-note" id="methodNote"></div>
-        </div>
 
-        <div class="section">
-          <h2>Monthly Money</h2>
-          <div class="grid">
-            <div class="field flat-only">
-              <label for="flatAmount">Current support order</label>
-              <input id="flatAmount" name="flatAmount" type="number" min="0" step="10" value="900">
-            </div>
-            <div class="field percent-only shares-only">
-              <label for="payerIncome">Paying parent net income</label>
-              <input id="payerIncome" name="payerIncome" type="number" min="0" step="50" value="5200">
-            </div>
-            <div class="field shares-only">
-              <label for="otherIncome">Other parent net income</label>
-              <input id="otherIncome" name="otherIncome" type="number" min="0" step="50" value="3800">
-            </div>
-            <div class="field percent-only">
-              <label for="supportPercent">Support percent</label>
-              <input id="supportPercent" name="supportPercent" type="number" min="0" max="100" step=".1" value="25">
-            </div>
-            <div class="field shares-only">
-              <label for="childCostRate">Child cost percent</label>
-              <input id="childCostRate" name="childCostRate" type="number" min="0" max="100" step=".1" value="32">
-            </div>
-            <div class="field shares-only">
-              <label for="payerOvernights">Paying parent overnights</label>
-              <input id="payerOvernights" name="payerOvernights" type="number" min="0" max="365" step="1" value="80">
-            </div>
-            <div class="field">
-              <label for="childcare">Child care add-on</label>
-              <input id="childcare" name="childcare" type="number" min="0" step="10" value="250">
-            </div>
-            <div class="field">
-              <label for="medical">Child health add-on</label>
-              <input id="medical" name="medical" type="number" min="0" step="10" value="120">
-            </div>
-            <div class="field">
-              <label for="directCredits">Direct monthly credits</label>
-              <input id="directCredits" name="directCredits" type="number" min="0" step="10" value="0">
-            </div>
-            <div class="field">
-              <label for="addOnShare">Payer add-on share</label>
-              <input id="addOnShare" name="addOnShare" type="number" min="0" max="100" step=".1" value="58">
-            </div>
-          </div>
-        </div>
+          <form id="plannerForm">
+            <input type="hidden" id="method" name="method" value="flat">
+            <div class="method-note hidden" id="methodNote"></div>
 
-        <div class="section">
-          <h2>Changes Over Time</h2>
-          <div class="grid">
-            <div class="field">
-              <label for="payerRaise">Payer annual income change</label>
-              <input id="payerRaise" name="payerRaise" type="number" step=".1" value="3">
+            <div class="section">
+              <h2>Basic order</h2>
+              <div class="grid">
+                <div class="field">
+                  <label for="flatAmount">Monthly child support order</label>
+                  <input id="flatAmount" name="flatAmount" type="number" min="0" step="10" value="900">
+                </div>
+                <div class="field">
+                  <label for="spousalSupport">Monthly spousal support</label>
+                  <input id="spousalSupport" name="spousalSupport" type="number" min="0" step="10" value="0">
+                </div>
+                <div class="field">
+                  <label for="childrenCount">Children</label>
+                  <input id="childrenCount" name="childrenCount" type="number" min="1" max="8" step="1" value="2">
+                </div>
+                <div class="field">
+                  <label for="startMonth">Start month</label>
+                  <input id="startMonth" name="startMonth" type="month" value="2026-08">
+                </div>
+                <div class="field">
+                  <label for="years">Projection years</label>
+                  <input id="years" name="years" type="number" min="1" max="25" step="1" value="10">
+                </div>
+                <div class="field">
+                  <label for="jurisdiction">State or county</label>
+                  <input id="jurisdiction" name="jurisdiction" value="California" autocomplete="address-level1">
+                </div>
+              </div>
             </div>
-            <div class="field">
-              <label for="otherRaise">Other parent income change</label>
-              <input id="otherRaise" name="otherRaise" type="number" step=".1" value="2">
-            </div>
-            <div class="field">
-              <label for="orderCola">Order annual adjustment</label>
-              <input id="orderCola" name="orderCola" type="number" step=".1" value="0">
-            </div>
-            <div class="field">
-              <label for="expenseInflation">Expense annual change</label>
-              <input id="expenseInflation" name="expenseInflation" type="number" step=".1" value="3">
-            </div>
-            <div class="field full">
-              <label class="toggle" for="scaleWithChildren">
-                <span>Reduce estimates when a child ages out</span>
-                <input id="scaleWithChildren" name="scaleWithChildren" type="checkbox" checked>
-              </label>
-            </div>
-          </div>
-        </div>
 
-        <div class="section">
-          <h2>Court Order Pay Schedule</h2>
-          <div class="grid">
-            <div class="field">
-              <label for="payFrequency">Pay frequency</label>
-              <select id="payFrequency" name="payFrequency">
-                <option value="biweekly">Biweekly</option>
-                <option value="weekly">Weekly</option>
-                <option value="semimonthly">Semimonthly</option>
-                <option value="monthly">Monthly</option>
-              </select>
+            <div class="section">
+              <h2>Pay schedule</h2>
+              <div class="grid">
+                <div class="field">
+                  <label for="payFrequency">Pay frequency</label>
+                  <select id="payFrequency" name="payFrequency">
+                    <option value="biweekly">Biweekly</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="semimonthly">Semimonthly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="firstPayDate">First pay date</label>
+                  <input id="firstPayDate" name="firstPayDate" type="date" value="2026-08-07">
+                </div>
+                <div class="field">
+                  <label for="semimonthlyDays">Semimonthly days</label>
+                  <input id="semimonthlyDays" name="semimonthlyDays" value="1,15">
+                </div>
+                <div class="field full">
+                  <label class="toggle" for="includePaySchedule">
+                    <span>Show paycheck schedule</span>
+                    <input id="includePaySchedule" name="includePaySchedule" type="checkbox" checked>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div class="field">
-              <label for="firstPayDate">First pay date</label>
-              <input id="firstPayDate" name="firstPayDate" type="date" value="2026-08-07">
-            </div>
-            <div class="field">
-              <label for="spousalSupport">Spousal support order</label>
-              <input id="spousalSupport" name="spousalSupport" type="number" min="0" step="10" value="0">
-            </div>
-            <div class="field">
-              <label for="semimonthlyDays">Semimonthly days</label>
-              <input id="semimonthlyDays" name="semimonthlyDays" value="1,15">
-            </div>
-            <div class="field full">
-              <label class="toggle" for="includePaySchedule">
-                <span>Show paycheck withholding schedule</span>
-                <input id="includePaySchedule" name="includePaySchedule" type="checkbox" checked>
-              </label>
-            </div>
-          </div>
-          <div class="method-note">Use this for court orders or scanned PDF schedules that state a monthly child support amount, spousal support amount, pay frequency, or extra earnings percentage. Enter the terms manually; do not upload private court documents.</div>
-        </div>
 
-        <div class="section">
-          <h2>Child End Dates</h2>
-          <div id="childrenList"></div>
-        </div>
+            <div class="section">
+              <h2>Optional details</h2>
+              <div class="grid">
+                <input id="payerIncome" name="payerIncome" type="hidden" value="5200">
+                <input id="otherIncome" name="otherIncome" type="hidden" value="3800">
+                <input id="supportPercent" name="supportPercent" type="hidden" value="25">
+                <input id="childCostRate" name="childCostRate" type="hidden" value="32">
+                <input id="payerOvernights" name="payerOvernights" type="hidden" value="80">
+                <input id="childcare" name="childcare" type="hidden" value="250">
+                <input id="medical" name="medical" type="hidden" value="120">
+                <input id="directCredits" name="directCredits" type="hidden" value="0">
+                <input id="addOnShare" name="addOnShare" type="hidden" value="58">
+                <input id="payerRaise" name="payerRaise" type="hidden" value="3">
+                <input id="otherRaise" name="otherRaise" type="hidden" value="2">
+                <input id="orderCola" name="orderCola" type="hidden" value="0">
+                <input id="expenseInflation" name="expenseInflation" type="hidden" value="3">
+                <input id="arrearsStart" name="arrearsStart" type="hidden" value="0">
+                <input id="arrearsInterest" name="arrearsInterest" type="hidden" value="0">
+                <input id="extraArrearsPayment" name="extraArrearsPayment" type="hidden" value="0">
+                <label class="toggle full" for="scaleWithChildren">
+                  <span>Reduce estimates when a child ages out</span>
+                  <input id="scaleWithChildren" name="scaleWithChildren" type="checkbox" checked>
+                </label>
+              </div>
+            </div>
 
-        <div class="section">
-          <h2>Arrears</h2>
-          <div class="grid">
-            <div class="field">
-              <label for="arrearsStart">Starting arrears</label>
-              <input id="arrearsStart" name="arrearsStart" type="number" min="0" step="25" value="0">
+            <div class="section">
+              <h2>Child end dates</h2>
+              <div id="childrenList"></div>
             </div>
-            <div class="field">
-              <label for="arrearsInterest">Annual interest</label>
-              <input id="arrearsInterest" name="arrearsInterest" type="number" min="0" max="30" step=".1" value="0">
-            </div>
-            <div class="field full">
-              <label for="extraArrearsPayment">Extra arrears payment</label>
-              <input id="extraArrearsPayment" name="extraArrearsPayment" type="number" min="0" step="25" value="0">
-            </div>
-          </div>
+          </form>
         </div>
-      </form>
+      </details>
     </aside>
 
     <main>
       <div class="hero">
         <div>
-          <h1>Child Support Planner</h1>
-          <p>Estimate support, add-ons, aging-out dates, and arrears month by month. Use an official calculator or local family law professional before relying on numbers for court or settlement decisions.</p>
+          <h1>Overtime Child Support</h1>
+          <p>Type two numbers. The answer shows how much extra support to set aside.</p>
         </div>
         <div class="actions">
           <button class="secondary" id="sampleBtn" type="button" title="Load sample values">
@@ -826,6 +815,9 @@
         </div>
       </section>
 
+      <details class="full-projection">
+        <summary>Full planner and schedule</summary>
+        <div class="projection-body">
       <div class="metrics" aria-live="polite">
         <div class="metric">
           <span>First Month Estimate</span>
@@ -914,6 +906,8 @@
           </table>
         </div>
       </section>
+        </div>
+      </details>
     </main>
   </div>
 

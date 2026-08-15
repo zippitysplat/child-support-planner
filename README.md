@@ -16,7 +16,7 @@ Features:
 - Monthly projection with income changes, support adjustment, expenses, and child age-out dates
 - Add-on expenses, credits, arrears balance, interest, and extra arrears payments
 - Top-of-page overtime and bonus calculator for additional support owed on extra earnings
-- Simple step-by-step overtime guide for phone use
+- Simple first-screen overtime guide for phone use, with advanced settings collapsed
 - Court-order pay schedule fields for weekly, biweekly, semimonthly, or monthly withholding
 - Optional spousal support and extra earnings support percentage inputs
 - Chart, monthly table, CSV export, print or save as PDF
