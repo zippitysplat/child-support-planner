@@ -1,0 +1,1192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Child Support Planner</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #5f6d7a;
+      --line: #d8dee5;
+      --panel: #ffffff;
+      --bg: #f5f7f9;
+      --soft: #eef3f7;
+      --blue: #1f6feb;
+      --blue-dark: #174ea6;
+      --green: #1f8a5b;
+      --red: #c3423f;
+      --amber: #ad6a00;
+      --shadow: 0 10px 30px rgba(23, 32, 42, .08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    }
+
+    aside {
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      padding: 22px;
+      overflow: auto;
+      max-height: 100vh;
+    }
+
+    main {
+      overflow: auto;
+      max-height: 100vh;
+      padding: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(24px, 3vw, 38px);
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 15px;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: #374151;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .notice {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #7c3f00;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-bottom: 18px;
+    }
+
+    .section {
+      padding: 18px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      color: #3f4a55;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px 11px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      min-height: 41px;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(31, 111, 235, .14);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .segmented button {
+      padding: 10px 8px;
+      background: #fff;
+      color: var(--muted);
+      border-right: 1px solid var(--line);
+      font-size: 13px;
+      min-height: 42px;
+    }
+
+    .segmented button:last-child {
+      border-right: 0;
+    }
+
+    .segmented button.active {
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .icon-button,
+    .primary,
+    .secondary,
+    .danger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .primary {
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .primary:hover {
+      background: var(--blue-dark);
+    }
+
+    .secondary,
+    .icon-button {
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .secondary:hover,
+    .icon-button:hover {
+      background: var(--soft);
+    }
+
+    .danger {
+      color: #fff;
+      background: var(--red);
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.5;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: clamp(20px, 2.4vw, 30px);
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .chart-wrap,
+    .table-wrap,
+    .summary-wrap {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .chart-head,
+    .table-head,
+    .summary-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .chart-head h2,
+    .table-head h2,
+    .summary-head h2 {
+      margin: 0;
+    }
+
+    canvas {
+      width: 100%;
+      height: 330px;
+      display: block;
+    }
+
+    .table-scroll {
+      overflow: auto;
+      max-height: 420px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 780px;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child,
+    th:nth-child(2),
+    td:nth-child(2) {
+      text-align: left;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f8fafc;
+      color: #374151;
+      font-size: 12px;
+    }
+
+    .child-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 9px;
+    }
+
+    .child-row button {
+      width: 41px;
+      height: 41px;
+      padding: 0;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+
+    .toggle span {
+      font-size: 13px;
+      color: #374151;
+      font-weight: 700;
+    }
+
+    .toggle input {
+      width: 20px;
+      min-height: 20px;
+      accent-color: var(--blue);
+    }
+
+    .summary-body {
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      line-height: 1.45;
+      color: #374151;
+    }
+
+    .summary-body a {
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 18px;
+    }
+
+    .method-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      min-height: 38px;
+      margin-top: 10px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1050px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      aside,
+      main {
+        max-height: none;
+      }
+
+      aside {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      aside,
+      main {
+        padding: 16px;
+      }
+
+      .grid,
+      .metrics,
+      .child-row {
+        grid-template-columns: 1fr;
+      }
+
+      .child-row button {
+        width: 100%;
+      }
+
+      .segmented {
+        grid-template-columns: 1fr;
+      }
+
+      .segmented button {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .segmented button:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .shell {
+        display: block;
+      }
+
+      aside,
+      .actions,
+      .topbar .secondary {
+        display: none;
+      }
+
+      main {
+        max-height: none;
+        padding: 0;
+      }
+
+      .chart-wrap,
+      .table-wrap,
+      .summary-wrap,
+      .metric {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="topbar">
+        <div>
+          <h2>Inputs</h2>
+          <div class="subtle">Saved in this browser only.</div>
+        </div>
+        <button class="icon-button" id="resetBtn" type="button" title="Reset inputs" aria-label="Reset inputs">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+        </button>
+      </div>
+
+      <div class="notice">
+        Planning estimate only. Courts and agencies use jurisdiction-specific rules, verified incomes, credits, custody schedules, and add-on expenses.
+      </div>
+
+      <form id="plannerForm">
+        <div class="section">
+          <h2>Case Basics</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="jurisdiction">State or county</label>
+              <input id="jurisdiction" name="jurisdiction" value="California" autocomplete="address-level1">
+            </div>
+            <div class="field">
+              <label for="childrenCount">Children</label>
+              <input id="childrenCount" name="childrenCount" type="number" min="1" max="8" step="1" value="2">
+            </div>
+            <div class="field">
+              <label for="startMonth">Start month</label>
+              <input id="startMonth" name="startMonth" type="month" value="2026-08">
+            </div>
+            <div class="field">
+              <label for="years">Projection years</label>
+              <input id="years" name="years" type="number" min="1" max="25" step="1" value="10">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Method</h2>
+          <div class="segmented" role="tablist" aria-label="Calculation method">
+            <button type="button" data-method="flat" class="active">Flat Order</button>
+            <button type="button" data-method="percent">Percent</button>
+            <button type="button" data-method="shares">Income Shares</button>
+          </div>
+          <input type="hidden" id="method" name="method" value="flat">
+          <div class="method-note" id="methodNote"></div>
+        </div>
+
+        <div class="section">
+          <h2>Monthly Money</h2>
+          <div class="grid">
+            <div class="field flat-only">
+              <label for="flatAmount">Current support order</label>
+              <input id="flatAmount" name="flatAmount" type="number" min="0" step="10" value="900">
+            </div>
+            <div class="field percent-only shares-only">
+              <label for="payerIncome">Paying parent net income</label>
+              <input id="payerIncome" name="payerIncome" type="number" min="0" step="50" value="5200">
+            </div>
+            <div class="field shares-only">
+              <label for="otherIncome">Other parent net income</label>
+              <input id="otherIncome" name="otherIncome" type="number" min="0" step="50" value="3800">
+            </div>
+            <div class="field percent-only">
+              <label for="supportPercent">Support percent</label>
+              <input id="supportPercent" name="supportPercent" type="number" min="0" max="100" step=".1" value="25">
+            </div>
+            <div class="field shares-only">
+              <label for="childCostRate">Child cost percent</label>
+              <input id="childCostRate" name="childCostRate" type="number" min="0" max="100" step=".1" value="32">
+            </div>
+            <div class="field shares-only">
+              <label for="payerOvernights">Paying parent overnights</label>
+              <input id="payerOvernights" name="payerOvernights" type="number" min="0" max="365" step="1" value="80">
+            </div>
+            <div class="field">
+              <label for="childcare">Child care add-on</label>
+              <input id="childcare" name="childcare" type="number" min="0" step="10" value="250">
+            </div>
+            <div class="field">
+              <label for="medical">Child health add-on</label>
+              <input id="medical" name="medical" type="number" min="0" step="10" value="120">
+            </div>
+            <div class="field">
+              <label for="directCredits">Direct monthly credits</label>
+              <input id="directCredits" name="directCredits" type="number" min="0" step="10" value="0">
+            </div>
+            <div class="field">
+              <label for="addOnShare">Payer add-on share</label>
+              <input id="addOnShare" name="addOnShare" type="number" min="0" max="100" step=".1" value="58">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Changes Over Time</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="payerRaise">Payer annual income change</label>
+              <input id="payerRaise" name="payerRaise" type="number" step=".1" value="3">
+            </div>
+            <div class="field">
+              <label for="otherRaise">Other parent income change</label>
+              <input id="otherRaise" name="otherRaise" type="number" step=".1" value="2">
+            </div>
+            <div class="field">
+              <label for="orderCola">Order annual adjustment</label>
+              <input id="orderCola" name="orderCola" type="number" step=".1" value="0">
+            </div>
+            <div class="field">
+              <label for="expenseInflation">Expense annual change</label>
+              <input id="expenseInflation" name="expenseInflation" type="number" step=".1" value="3">
+            </div>
+            <div class="field full">
+              <label class="toggle" for="scaleWithChildren">
+                <span>Reduce estimates when a child ages out</span>
+                <input id="scaleWithChildren" name="scaleWithChildren" type="checkbox" checked>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Child End Dates</h2>
+          <div id="childrenList"></div>
+        </div>
+
+        <div class="section">
+          <h2>Arrears</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="arrearsStart">Starting arrears</label>
+              <input id="arrearsStart" name="arrearsStart" type="number" min="0" step="25" value="0">
+            </div>
+            <div class="field">
+              <label for="arrearsInterest">Annual interest</label>
+              <input id="arrearsInterest" name="arrearsInterest" type="number" min="0" max="30" step=".1" value="0">
+            </div>
+            <div class="field full">
+              <label for="extraArrearsPayment">Extra arrears payment</label>
+              <input id="extraArrearsPayment" name="extraArrearsPayment" type="number" min="0" step="25" value="0">
+            </div>
+          </div>
+        </div>
+      </form>
+    </aside>
+
+    <main>
+      <div class="hero">
+        <div>
+          <h1>Child Support Planner</h1>
+          <p>Estimate support, add-ons, aging-out dates, and arrears month by month. Use an official calculator or local family law professional before relying on numbers for court or settlement decisions.</p>
+        </div>
+        <div class="actions">
+          <button class="secondary" id="sampleBtn" type="button" title="Load sample values">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"/><path d="M3 12h18"/></svg>
+            Sample
+          </button>
+          <button class="secondary" id="csvBtn" type="button" title="Export monthly projection to CSV">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            CSV
+          </button>
+          <button class="primary" id="printBtn" type="button" title="Print or save as PDF">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            Print
+          </button>
+        </div>
+      </div>
+
+      <div class="metrics" aria-live="polite">
+        <div class="metric">
+          <span>First Month Estimate</span>
+          <strong id="firstMonth">$0</strong>
+          <small id="firstMonthMeta">0 active children</small>
+        </div>
+        <div class="metric">
+          <span>Projected Total</span>
+          <strong id="totalSupport">$0</strong>
+          <small id="totalMeta">Support and add-ons</small>
+        </div>
+        <div class="metric">
+          <span>Average Monthly</span>
+          <strong id="avgMonthly">$0</strong>
+          <small id="avgMeta">Across projection</small>
+        </div>
+        <div class="metric">
+          <span>Ending Arrears</span>
+          <strong id="endingArrears">$0</strong>
+          <small id="arrearsMeta">After extra payments</small>
+        </div>
+      </div>
+
+      <section class="chart-wrap">
+        <div class="chart-head">
+          <h2>Monthly Support</h2>
+          <div class="subtle" id="chartRange"></div>
+        </div>
+        <canvas id="supportChart" width="1100" height="330" aria-label="Monthly support chart"></canvas>
+      </section>
+
+      <section class="summary-wrap">
+        <div class="summary-head">
+          <h2>Review Before Sharing</h2>
+        </div>
+        <div class="summary-body" id="reviewNotes"></div>
+      </section>
+
+      <section class="table-wrap">
+        <div class="table-head">
+          <h2>Monthly Schedule</h2>
+          <div class="subtle" id="rowCount"></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Method</th>
+                <th>Children</th>
+                <th>Base</th>
+                <th>Add-ons</th>
+                <th>Credits</th>
+                <th>Total Due</th>
+                <th>Extra Arrears</th>
+                <th>Arrears Balance</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "child-support-planner-v1";
+    const form = document.getElementById("plannerForm");
+    const childrenList = document.getElementById("childrenList");
+    const scheduleBody = document.getElementById("scheduleBody");
+    const chart = document.getElementById("supportChart");
+    const ctx = chart.getContext("2d");
+    const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+    const monthFmt = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+    const methodNotes = {
+      flat: "Use this when there is already a monthly order or negotiated amount. The planner applies the order adjustment and optional child age-out scaling.",
+      percent: "Uses an editable percentage of the paying parent's net monthly income. State percentages differ, so treat the default as a placeholder.",
+      shares: "Estimates a shared-income model: combined net income, child cost percent, each parent's income share, parenting-time adjustment, and add-ons."
+    };
+    const percentByChildren = [0, 17, 25, 29, 31, 34, 34, 34, 34];
+    const costRateByChildren = [0, 22, 32, 40, 45, 50, 54, 57, 60];
+
+    const defaults = {
+      jurisdiction: "California",
+      childrenCount: "2",
+      startMonth: "2026-08",
+      years: "10",
+      method: "flat",
+      flatAmount: "900",
+      payerIncome: "5200",
+      otherIncome: "3800",
+      supportPercent: "25",
+      childCostRate: "32",
+      payerOvernights: "80",
+      childcare: "250",
+      medical: "120",
+      directCredits: "0",
+      addOnShare: "58",
+      payerRaise: "3",
+      otherRaise: "2",
+      orderCola: "0",
+      expenseInflation: "3",
+      scaleWithChildren: true,
+      arrearsStart: "0",
+      arrearsInterest: "0",
+      extraArrearsPayment: "0",
+      children: [
+        { name: "Child 1", endMonth: "2034-06" },
+        { name: "Child 2", endMonth: "2038-06" }
+      ]
+    };
+
+    function readState() {
+      const fd = new FormData(form);
+      const state = { children: readChildren() };
+      for (const [key, value] of fd.entries()) {
+        state[key] = value;
+      }
+      state.scaleWithChildren = document.getElementById("scaleWithChildren").checked;
+      state.method = document.getElementById("method").value;
+      return state;
+    }
+
+    function writeState(state) {
+      for (const [key, value] of Object.entries(state)) {
+        if (key === "children") continue;
+        const el = document.getElementById(key);
+        if (!el) continue;
+        if (el.type === "checkbox") {
+          el.checked = Boolean(value);
+        } else {
+          el.value = value;
+        }
+      }
+      setMethod(state.method || "flat", false);
+      renderChildren(Number(state.childrenCount || 1), state.children || []);
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(readState()));
+    }
+
+    function restoreState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        writeState(defaults);
+        return;
+      }
+      try {
+        writeState({ ...defaults, ...JSON.parse(raw) });
+      } catch {
+        writeState(defaults);
+      }
+    }
+
+    function readChildren() {
+      return [...childrenList.querySelectorAll(".child-row")].map((row, index) => ({
+        name: row.querySelector("[data-child-name]").value || `Child ${index + 1}`,
+        endMonth: row.querySelector("[data-child-end]").value
+      }));
+    }
+
+    function renderChildren(count, existing = readChildren()) {
+      const safeCount = clamp(Math.round(count || 1), 1, 8);
+      childrenList.innerHTML = "";
+      for (let i = 0; i < safeCount; i++) {
+        const child = existing[i] || { name: `Child ${i + 1}`, endMonth: addMonths(parseMonth(document.getElementById("startMonth").value), 216 + i * 36).toISOString().slice(0, 7) };
+        const row = document.createElement("div");
+        row.className = "child-row";
+        row.innerHTML = `
+          <div class="field">
+            <label for="child-name-${i}">Name</label>
+            <input id="child-name-${i}" data-child-name value="${escapeHtml(child.name)}">
+          </div>
+          <div class="field">
+            <label for="child-end-${i}">Support through</label>
+            <input id="child-end-${i}" data-child-end type="month" value="${escapeHtml(child.endMonth || "")}">
+          </div>
+          <button class="icon-button" type="button" title="Use 18 years from start" aria-label="Use 18 years from start" data-default-end="${i}">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>
+          </button>
+        `;
+        childrenList.appendChild(row);
+      }
+    }
+
+    function setMethod(method, shouldRun = true) {
+      document.getElementById("method").value = method;
+      document.querySelectorAll("[data-method]").forEach(btn => btn.classList.toggle("active", btn.dataset.method === method));
+      document.querySelectorAll(".flat-only, .percent-only, .shares-only").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(`.${method}-only`).forEach(el => el.classList.remove("hidden"));
+      document.getElementById("methodNote").textContent = methodNotes[method];
+      if (shouldRun) run();
+    }
+
+    function parseMonth(value) {
+      const [year, month] = String(value || "").split("-").map(Number);
+      if (!year || !month) return new Date(Date.UTC(2026, 7, 1));
+      return new Date(Date.UTC(year, month - 1, 1));
+    }
+
+    function addMonths(date, months) {
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+    }
+
+    function monthKey(date) {
+      return date.toISOString().slice(0, 7);
+    }
+
+    function num(value, fallback = 0) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function pct(value) {
+      return num(value) / 100;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function activeChildren(children, date) {
+      const key = monthKey(date);
+      return children.filter(child => !child.endMonth || key <= child.endMonth).length;
+    }
+
+    function methodLabel(method) {
+      return method === "flat" ? "Flat order" : method === "percent" ? "Percent" : "Income shares";
+    }
+
+    function calculateSchedule(state) {
+      const months = clamp(Math.round(num(state.years, 1) * 12), 1, 300);
+      const start = parseMonth(state.startMonth);
+      const initialChildren = Math.max(1, state.children.length || num(state.childrenCount, 1));
+      const rows = [];
+      let arrears = Math.max(0, num(state.arrearsStart));
+
+      for (let i = 0; i < months; i++) {
+        const date = addMonths(start, i);
+        const yearsElapsed = i / 12;
+        const childrenNow = activeChildren(state.children, date);
+        const childScale = state.scaleWithChildren ? childrenNow / initialChildren : childrenNow > 0 ? 1 : 0;
+        const payerIncome = num(state.payerIncome) * Math.pow(1 + pct(state.payerRaise), yearsElapsed);
+        const otherIncome = num(state.otherIncome) * Math.pow(1 + pct(state.otherRaise), yearsElapsed);
+        const expenses = (num(state.childcare) + num(state.medical)) * Math.pow(1 + pct(state.expenseInflation), yearsElapsed);
+        const addOnShare = clamp(pct(state.addOnShare), 0, 1);
+        const addOns = childrenNow > 0 ? expenses * addOnShare : 0;
+        const credits = childrenNow > 0 ? num(state.directCredits) : 0;
+        let base = 0;
+
+        if (state.method === "flat") {
+          base = num(state.flatAmount) * Math.pow(1 + pct(state.orderCola), yearsElapsed) * childScale;
+        }
+
+        if (state.method === "percent") {
+          const defaultInitialPercent = percentByChildren[initialChildren] || percentByChildren[percentByChildren.length - 1];
+          const defaultActivePercent = percentByChildren[childrenNow] || percentByChildren[percentByChildren.length - 1];
+          const enteredPercent = state.supportPercent === "" ? defaultInitialPercent : num(state.supportPercent);
+          const usesDefaultRate = Math.abs(enteredPercent - defaultInitialPercent) < .001;
+          const supportPercent = usesDefaultRate && state.scaleWithChildren ? defaultActivePercent : enteredPercent;
+          base = payerIncome * pct(supportPercent) * (usesDefaultRate || !state.scaleWithChildren ? 1 : childScale);
+        }
+
+        if (state.method === "shares") {
+          const combined = payerIncome + otherIncome;
+          const payerShare = combined > 0 ? payerIncome / combined : 0;
+          const defaultInitialCostRate = costRateByChildren[initialChildren] || costRateByChildren[costRateByChildren.length - 1];
+          const defaultActiveCostRate = costRateByChildren[childrenNow] || costRateByChildren[costRateByChildren.length - 1];
+          const enteredCostRate = state.childCostRate === "" ? defaultInitialCostRate : num(state.childCostRate);
+          const usesDefaultCostRate = Math.abs(enteredCostRate - defaultInitialCostRate) < .001;
+          const childCostRate = usesDefaultCostRate && state.scaleWithChildren ? defaultActiveCostRate : enteredCostRate;
+          const parentingCredit = clamp(num(state.payerOvernights) / 365, 0, .5) * .75;
+          const sharedNeed = combined * pct(childCostRate);
+          base = sharedNeed * payerShare * (1 - parentingCredit) * (usesDefaultCostRate || !state.scaleWithChildren ? 1 : childScale);
+        }
+
+        base = childrenNow > 0 ? Math.max(0, base) : 0;
+        const due = Math.max(0, base + addOns - credits);
+        const extra = Math.min(Math.max(0, num(state.extraArrearsPayment)), Math.max(0, arrears));
+        arrears = Math.max(0, arrears * (1 + pct(state.arrearsInterest) / 12) - extra);
+
+        rows.push({
+          date,
+          month: monthFmt.format(date),
+          method: methodLabel(state.method),
+          children: childrenNow,
+          base,
+          addOns,
+          credits,
+          due,
+          extra,
+          arrears
+        });
+      }
+      return rows;
+    }
+
+    function renderMetrics(rows) {
+      const first = rows[0];
+      const total = rows.reduce((sum, row) => sum + row.due, 0);
+      const avg = rows.length ? total / rows.length : 0;
+      const ending = rows.length ? rows[rows.length - 1].arrears : 0;
+      document.getElementById("firstMonth").textContent = money.format(first ? first.due : 0);
+      document.getElementById("firstMonthMeta").textContent = `${first ? first.children : 0} active ${first && first.children === 1 ? "child" : "children"}`;
+      document.getElementById("totalSupport").textContent = money.format(total);
+      document.getElementById("avgMonthly").textContent = money.format(avg);
+      document.getElementById("endingArrears").textContent = money.format(ending);
+      document.getElementById("totalMeta").textContent = `${rows.length} monthly estimates`;
+      document.getElementById("avgMeta").textContent = `${rows[0]?.month || ""} to ${rows[rows.length - 1]?.month || ""}`;
+      document.getElementById("arrearsMeta").textContent = `${money.format(rows.reduce((sum, row) => sum + row.extra, 0))} extra paid`;
+      document.getElementById("chartRange").textContent = `${rows[0]?.month || ""} to ${rows[rows.length - 1]?.month || ""}`;
+      document.getElementById("rowCount").textContent = `${rows.length} rows`;
+    }
+
+    function renderTable(rows) {
+      const visibleRows = rows.slice(0, 240);
+      scheduleBody.innerHTML = visibleRows.map(row => `
+        <tr>
+          <td>${row.month}</td>
+          <td>${row.method}</td>
+          <td>${row.children}</td>
+          <td>${money.format(row.base)}</td>
+          <td>${money.format(row.addOns)}</td>
+          <td>${money.format(row.credits)}</td>
+          <td><strong>${money.format(row.due)}</strong></td>
+          <td>${money.format(row.extra)}</td>
+          <td>${money.format(row.arrears)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderNotes(state, rows) {
+      const lastChildMonth = state.children.map(c => c.endMonth).filter(Boolean).sort().pop();
+      const stateText = state.jurisdiction ? ` for ${escapeHtml(state.jurisdiction)}` : "";
+      document.getElementById("reviewNotes").innerHTML = `
+        <div><strong>Use official numbers before filing.</strong> This planner does not replace a court-certified calculator, court order, attorney, mediator, or local child support agency.</div>
+        <div>The current projection uses <strong>${methodLabel(state.method)}</strong>${stateText}, ${rows[0]?.children || 0} active children at the start, and ${lastChildMonth ? `child support end dates through <strong>${escapeHtml(lastChildMonth)}</strong>` : "no entered child end date"}.</div>
+        <div>Official starting points: <a href="https://www.usa.gov/child-support" target="_blank" rel="noreferrer">USA.gov child support help</a>, <a href="https://childsupport.ca.gov/guideline-calculator/" target="_blank" rel="noreferrer">California Guideline Calculator</a>, and <a href="https://www.ncsl.org/human-services/child-support-guideline-models" target="_blank" rel="noreferrer">state guideline model overview</a>.</div>
+      `;
+    }
+
+    function renderChart(rows) {
+      const rect = chart.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      chart.width = Math.max(720, Math.floor(rect.width * dpr));
+      chart.height = Math.floor(330 * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const width = chart.width / dpr;
+      const height = chart.height / dpr;
+      ctx.clearRect(0, 0, width, height);
+
+      const pad = { left: 64, right: 22, top: 24, bottom: 42 };
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      const maxDue = Math.max(100, ...rows.map(row => row.due));
+      const yMax = Math.ceil(maxDue / 250) * 250;
+
+      ctx.strokeStyle = "#d8dee5";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#5f6d7a";
+      ctx.font = "12px Inter, system-ui, sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + plotH - (plotH * i / 4);
+        const value = yMax * i / 4;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(width - pad.right, y);
+        ctx.stroke();
+        ctx.fillText(money.format(value), pad.left - 10, y);
+      }
+
+      const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+      gradient.addColorStop(0, "rgba(31, 111, 235, .28)");
+      gradient.addColorStop(1, "rgba(31, 111, 235, 0)");
+
+      const point = (row, index) => {
+        const x = pad.left + (rows.length === 1 ? 0 : index / (rows.length - 1)) * plotW;
+        const y = pad.top + plotH - (row.due / yMax) * plotH;
+        return { x, y };
+      };
+
+      ctx.beginPath();
+      rows.forEach((row, index) => {
+        const p = point(row, index);
+        if (index === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      const last = point(rows[rows.length - 1], rows.length - 1);
+      const first = point(rows[0], 0);
+      ctx.lineTo(last.x, pad.top + plotH);
+      ctx.lineTo(first.x, pad.top + plotH);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      ctx.beginPath();
+      rows.forEach((row, index) => {
+        const p = point(row, index);
+        if (index === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.strokeStyle = "#1f6feb";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = "#17202a";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      const tickCount = Math.min(6, rows.length);
+      for (let i = 0; i < tickCount; i++) {
+        const index = Math.round((rows.length - 1) * i / Math.max(1, tickCount - 1));
+        const p = point(rows[index], index);
+        ctx.fillText(rows[index].month, p.x, pad.top + plotH + 14);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function run() {
+      const state = readState();
+      const rows = calculateSchedule(state);
+      renderMetrics(rows);
+      renderTable(rows);
+      renderChart(rows);
+      renderNotes(state, rows);
+      saveState();
+      window.currentRows = rows;
+    }
+
+    function exportCsv() {
+      const rows = window.currentRows || [];
+      const headers = ["Month", "Method", "Active Children", "Base", "Add-ons", "Credits", "Total Due", "Extra Arrears Payment", "Arrears Balance"];
+      const csv = [
+        headers.join(","),
+        ...rows.map(row => [
+          row.month,
+          row.method,
+          row.children,
+          row.base.toFixed(2),
+          row.addOns.toFixed(2),
+          row.credits.toFixed(2),
+          row.due.toFixed(2),
+          row.extra.toFixed(2),
+          row.arrears.toFixed(2)
+        ].map(value => `"${String(value).replace(/"/g, "\"\"")}"`).join(","))
+      ].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "child-support-projection.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    document.querySelectorAll("[data-method]").forEach(button => {
+      button.addEventListener("click", () => setMethod(button.dataset.method));
+    });
+
+    form.addEventListener("input", event => {
+      if (event.target.id === "childrenCount") {
+        const count = num(event.target.value, 1);
+        renderChildren(count);
+        if (document.getElementById("method").value === "percent") {
+          document.getElementById("supportPercent").value = percentByChildren[clamp(Math.round(count), 1, 8)];
+        }
+        if (document.getElementById("method").value === "shares") {
+          document.getElementById("childCostRate").value = costRateByChildren[clamp(Math.round(count), 1, 8)];
+        }
+      }
+      run();
+    });
+
+    childrenList.addEventListener("click", event => {
+      const button = event.target.closest("[data-default-end]");
+      if (!button) return;
+      const index = Number(button.dataset.defaultEnd);
+      const start = parseMonth(document.getElementById("startMonth").value);
+      const end = addMonths(start, 216 + index * 36);
+      button.closest(".child-row").querySelector("[data-child-end]").value = monthKey(end);
+      run();
+    });
+
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      writeState(defaults);
+      run();
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      writeState(defaults);
+      run();
+    });
+    document.getElementById("csvBtn").addEventListener("click", exportCsv);
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
+    window.addEventListener("resize", () => run());
+
+    restoreState();
+    run();
+  </script>
+</body>
+</html>

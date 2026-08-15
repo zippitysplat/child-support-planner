@@ -1,0 +1,19 @@
+# Child Support Planner
+
+Open `index.html` in a browser to estimate child support month by month.
+
+This is a planning tool, not a legal calculator. Child support rules vary by jurisdiction, and final amounts can depend on verified income, custody schedules, health insurance, child care, tax treatment, existing orders, hardship deductions, and court discretion.
+
+Useful official references:
+
+- USA.gov child support help: https://www.usa.gov/child-support
+- California Guideline Calculator: https://childsupport.ca.gov/guideline-calculator/
+- NCSL guideline model overview: https://www.ncsl.org/human-services/child-support-guideline-models
+
+Features:
+
+- Flat monthly order, percentage-of-income, and configurable income-shares estimate modes
+- Monthly projection with income changes, support adjustment, expenses, and child age-out dates
+- Add-on expenses, credits, arrears balance, interest, and extra arrears payments
+- Chart, monthly table, CSV export, print or save as PDF
+- Local browser autosave
